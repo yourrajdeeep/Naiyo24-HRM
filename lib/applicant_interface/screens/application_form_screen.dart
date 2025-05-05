@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../widgets/applicant_custom_app_bar.dart';
 
-class ApplicationFormScreen extends StatelessWidget {
+class ApplicationFormScreen extends StatefulWidget {
   ApplicationFormScreen({super.key});
 
+  @override
+  State<ApplicationFormScreen> createState() => _ApplicationFormScreenState();
+}
+
+class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   final _formKey = GlobalKey<FormState>();
+  String? selectedRole;
 
   Widget _buildJobDetailsCard(Map<String, String> job, ThemeData theme) {
     return Container(
@@ -91,6 +97,74 @@ class ApplicationFormScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildJobRoleDropdown() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Preferred Job Role',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: DropdownButtonFormField<String>(
+              value: selectedRole,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: 'Select a role',
+                hintStyle: TextStyle(color: Colors.black87),
+              ),
+              style: const TextStyle(color: Colors.black87),
+              icon: const Icon(
+                Icons.arrow_drop_down,
+                color: Colors.black,
+                size: 36,
+                weight: 700,
+              ),
+              dropdownColor: Colors.white,
+              items: [
+                'Software Engineer',
+                'DevOps Engineer',
+                'UI/UX Designer',
+                'Project Manager',
+                'Business Analyst',
+                'Data Scientist',
+                'Product Manager',
+              ].map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(
+                    value,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                );
+              }).toList(),
+              validator: (value) => value == null ? 'Please select a role' : null,
+              onChanged: (String? newValue) {
+                setState(() {
+                  selectedRole = newValue;
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final job = Get.arguments as Map<String, String>;
@@ -162,8 +236,9 @@ class ApplicationFormScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    _buildJobRoleDropdown(),
+                    const SizedBox(height: 16),
                     _buildUploadResumeButton(theme),
-                    const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
                       height: 56,

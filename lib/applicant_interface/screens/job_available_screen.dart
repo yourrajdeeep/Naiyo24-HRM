@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../widgets/applicant_custom_app_bar.dart';
 
 class JobAvailableScreen extends StatelessWidget {
   const JobAvailableScreen({super.key});
