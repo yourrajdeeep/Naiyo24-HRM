@@ -1,0 +1,10 @@
+# C/C++ build system timings
+generate_cxx_metadata
+  execute-generate-process
+    [gap of 47ms]
+    exec-configure 6062ms
+    [gap of 67ms]
+  execute-generate-process completed in 6176ms
+  [gap of 50ms]
+generate_cxx_metadata completed in 6250ms
+

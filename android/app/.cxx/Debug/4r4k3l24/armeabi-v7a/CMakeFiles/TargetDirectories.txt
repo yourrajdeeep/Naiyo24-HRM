@@ -1,0 +1,2 @@
+C:/Desktop/HMHNaiyo24/Naiyo24-HRM-main/android/app/.cxx/Debug/4r4k3l24/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Desktop/HMHNaiyo24/Naiyo24-HRM-main/android/app/.cxx/Debug/4r4k3l24/armeabi-v7a/CMakeFiles/rebuild_cache.dir
