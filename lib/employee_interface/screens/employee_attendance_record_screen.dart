@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
+import '../widgets/employee_custom_app_bar.dart';
+import '../widgets/employee_app_drawer.dart';
 
 class AttendanceRecord {
   final DateTime date;
@@ -29,6 +32,9 @@ class _EmployeeAttendanceRecordScreenState
     extends State<EmployeeAttendanceRecordScreen> {
   List<AttendanceRecord> attendanceRecords = [];
   bool isLoading = true;
+  DateTime _selectedDay = DateTime.now();
+  DateTime _focusedDay = DateTime.now();
+  late Map<DateTime, AttendanceRecord> _attendanceMap;
 
   @override
   void initState() {
@@ -40,25 +46,38 @@ class _EmployeeAttendanceRecordScreenState
     // TODO: Replace with actual API call
     await Future.delayed(Duration(seconds: 1)); // Simulate network delay
     
-    // Sample data - replace with actual data from your backend
+    final records = [
+      AttendanceRecord(
+        date: DateTime.now().subtract(Duration(days: 1)),
+        status: 'Present',
+        clockIn: TimeOfDay(hour: 9, minute: 0),
+        clockOut: TimeOfDay(hour: 17, minute: 30),
+        hoursWorked: 8.5,
+      ),
+      AttendanceRecord(
+        date: DateTime.now().subtract(Duration(days: 2)),
+        status: 'Late',
+        clockIn: TimeOfDay(hour: 9, minute: 45),
+        clockOut: TimeOfDay(hour: 18, minute: 0),
+        hoursWorked: 8.25,
+      ),
+      AttendanceRecord(
+        date: DateTime.now().subtract(Duration(days: 3)),
+        status: 'Absent',
+        hoursWorked: 0,
+      ),
+    ];
+
     setState(() {
-      attendanceRecords = [
-        AttendanceRecord(
-          date: DateTime.now().subtract(Duration(days: 1)),
-          status: 'Present',
-          clockIn: TimeOfDay(hour: 9, minute: 0),
-          clockOut: TimeOfDay(hour: 17, minute: 30),
-          hoursWorked: 8.5,
-        ),
-        AttendanceRecord(
-          date: DateTime.now().subtract(Duration(days: 2)),
-          status: 'Late',
-          clockIn: TimeOfDay(hour: 9, minute: 45),
-          clockOut: TimeOfDay(hour: 18, minute: 0),
-          hoursWorked: 8.25,
-        ),
-        // Add more sample records as needed
-      ];
+      attendanceRecords = records;
+      _attendanceMap = {
+        for (var record in records)
+          DateTime(
+            record.date.year,
+            record.date.month,
+            record.date.day,
+          ): record
+      };
       isLoading = false;
     });
   }
@@ -81,152 +100,184 @@ class _EmployeeAttendanceRecordScreenState
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Attendance History'),
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth > 600) {
-                  // Wide screen layout
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.vertical,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: _buildAttendanceTable(),
-                    ),
-                  );
-                } else {
-                  // Narrow screen layout
-                  return ListView.builder(
-                    itemCount: attendanceRecords.length,
-                    itemBuilder: (context, index) {
-                      final record = attendanceRecords[index];
-                      return Card(
-                        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                DateFormat('MMM dd, yyyy').format(record.date),
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: _getStatusColor(record.status)
-                                          .withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      record.status,
-                                      style: TextStyle(
-                                        color: _getStatusColor(record.status),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Clock In'),
-                                      Text(
-                                        _formatTimeOfDay(record.clockIn),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleSmall,
-                                      ),
-                                    ],
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Clock Out'),
-                                      Text(
-                                        _formatTimeOfDay(record.clockOut),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleSmall,
-                                      ),
-                                    ],
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Hours'),
-                                      Text(
-                                        '${record.hoursWorked.toStringAsFixed(1)}',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleSmall,
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                }
-              },
+  Widget _buildCalendar() {
+    return Card(
+      color: Colors.grey[900],
+      margin: EdgeInsets.all(16),
+      child: Padding(
+        padding: EdgeInsets.all(8),
+        child: TableCalendar(
+          firstDay: DateTime.utc(2024, 1, 1),
+          lastDay: DateTime.now(),
+          focusedDay: _focusedDay,
+          selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+          calendarFormat: CalendarFormat.month,
+          startingDayOfWeek: StartingDayOfWeek.monday,
+          calendarStyle: CalendarStyle(
+            outsideDaysVisible: false,
+            defaultTextStyle: TextStyle(color: Colors.white),
+            weekendTextStyle: TextStyle(color: Colors.white70),
+            selectedTextStyle: TextStyle(color: Colors.black),
+            selectedDecoration: BoxDecoration(
+              color: Colors.blue,
+              shape: BoxShape.circle,
             ),
+            todayTextStyle: TextStyle(color: Colors.black),
+            todayDecoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.5),
+              shape: BoxShape.circle,
+            ),
+            markerDecoration: BoxDecoration(
+              color: Colors.red,
+              shape: BoxShape.circle,
+            ),
+          ),
+          headerStyle: HeaderStyle(
+            formatButtonVisible: false,
+            titleCentered: true,
+            leftChevronIcon: Icon(Icons.chevron_left, color: Colors.white),
+            rightChevronIcon: Icon(Icons.chevron_right, color: Colors.white),
+            titleTextStyle: TextStyle(color: Colors.white, fontSize: 17),
+          ),
+          daysOfWeekStyle: DaysOfWeekStyle(
+            weekdayStyle: TextStyle(color: Colors.grey[400]),
+            weekendStyle: TextStyle(color: Colors.grey[400]),
+          ),
+          calendarBuilders: CalendarBuilders(
+            markerBuilder: (context, date, events) {
+              final record = _attendanceMap[DateTime(date.year, date.month, date.day)];
+              if (record != null) {
+                return Positioned(
+                  bottom: 1,
+                  child: Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _getStatusColor(record.status),
+                    ),
+                  ),
+                );
+              }
+              return null;
+            },
+          ),
+          onDaySelected: (selectedDay, focusedDay) {
+            setState(() {
+              _selectedDay = selectedDay;
+              _focusedDay = focusedDay;
+            });
+          },
+        ),
+      ),
     );
   }
 
-  Widget _buildAttendanceTable() {
-    return DataTable(
-      columns: [
-        DataColumn(label: Text('Date')),
-        DataColumn(label: Text('Status')),
-        DataColumn(label: Text('Clock In')),
-        DataColumn(label: Text('Clock Out')),
-        DataColumn(label: Text('Hours Worked')),
-      ],
-      rows: attendanceRecords.map((record) {
-        return DataRow(
-          cells: [
-            DataCell(Text(DateFormat('MMM dd, yyyy').format(record.date))),
-            DataCell(
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(record.status).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  record.status,
-                  style: TextStyle(
-                    color: _getStatusColor(record.status),
-                    fontWeight: FontWeight.bold,
-                  ),
+  Widget _buildSelectedDayDetails() {
+    final selectedRecord = _attendanceMap[DateTime(
+      _selectedDay.year,
+      _selectedDay.month,
+      _selectedDay.day,
+    )];
+
+    if (selectedRecord == null) {
+      return Padding(
+        padding: EdgeInsets.all(16),
+        child: Text(
+          'No attendance record for this date',
+          style: TextStyle(color: Colors.grey[400]),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return Card(
+      color: Colors.grey[900],
+      margin: EdgeInsets.all(16),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              DateFormat('EEEE, MMMM d, y').format(selectedRecord.date),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _getStatusColor(selectedRecord.status).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                selectedRecord.status,
+                style: TextStyle(
+                  color: _getStatusColor(selectedRecord.status),
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-            DataCell(Text(_formatTimeOfDay(record.clockIn))),
-            DataCell(Text(_formatTimeOfDay(record.clockOut))),
-            DataCell(Text('${record.hoursWorked.toStringAsFixed(1)}')),
+            SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildTimeColumn('Clock In', selectedRecord.clockIn),
+                _buildTimeColumn('Clock Out', selectedRecord.clockOut),
+                _buildTimeColumn('Hours', selectedRecord.hoursWorked.toStringAsFixed(1)),
+              ],
+            ),
           ],
-        );
-      }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeColumn(String label, dynamic value) {
+    String displayValue = value is TimeOfDay ? _formatTimeOfDay(value) : value.toString();
+    
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(color: Colors.grey[400]),
+        ),
+        SizedBox(height: 4),
+        Text(
+          displayValue,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: const EmployeeCustomAppBar(
+        title: 'Attendance Records',
+        canPop: true,
+      ),
+      drawer: const EmployeeAppDrawer(),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildCalendar(),
+                  _buildSelectedDayDetails(),
+                ],
+              ),
+            ),
     );
   }
 }
